@@ -105,6 +105,7 @@ const CreateUpdateTaskScreen: React.FC = () => {
           dueDate,
           priority,
           status,
+          updated: new Date(),
         });
       } else {
         await api.createTask(listId, {
@@ -113,7 +114,15 @@ const CreateUpdateTaskScreen: React.FC = () => {
           dueDate,
           priority,
           status: undefined,
+          updated: new Date(),
         });
+      }
+
+      // Update count in task list
+      const taskList = state.taskLists.find(tl => tl.id === listId);
+      if (taskList) {
+        const updatedCount = (taskList.count ?? 0) + (isUpdate ? 0 : 1);
+        await api.updateTaskList(listId, { ...taskList, count: updatedCount });
       }
 
       navigate(`/task-lists/${listId}`);
@@ -145,7 +154,7 @@ const CreateUpdateTaskScreen: React.FC = () => {
         <Button 
           variant="ghost"
           aria-label="Go back"
-          onClick={() => navigate(`/task-lists/${listId}`)}
+          onPress={() => navigate(`/task-lists/${listId}`)}
         >
           <ArrowLeft size={20} />
         </Button>
@@ -195,7 +204,7 @@ const CreateUpdateTaskScreen: React.FC = () => {
         <Button 
           type="submit" 
           color="primary" 
-          onClick={createUpdateTask}
+          onPress={createUpdateTask}
           fullWidth
         >
           {isUpdate ? "Update Task" : "Create Task"}

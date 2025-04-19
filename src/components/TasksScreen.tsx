@@ -76,7 +76,7 @@ const TaskListScreen: React.FC = () => {
         task.status === TaskStatus.CLOSED ? TaskStatus.OPEN : TaskStatus.CLOSED;
 
       api
-        .updateTask(listId, task.id, updatedTask)
+        .updateTask(listId, task.id!, updatedTask)
         .then(() => api.fetchTasks(listId));
     }
   };
@@ -85,6 +85,24 @@ const TaskListScreen: React.FC = () => {
     if (null != listId) {
       await api.deleteTaskList(listId);
       navigate("/");
+    }
+  };
+
+  const deleteTaskFromTaskList = async (task: Task) => {
+    if (null != listId) {
+      await api.deleteTask(listId, task.id!);
+
+      // Reduce count in task list
+      const taskList = state.taskLists.find((tl) => tl.id === listId);
+      if (taskList) {
+        const updatedCount = (taskList.count ?? 0) - 1;
+        await api.updateTaskList(listId, {
+          ...taskList,
+          count: updatedCount,
+        });
+      }
+      // Refetch tasks to update the UI
+      api.fetchTasks(listId);
     }
   };
 
@@ -127,17 +145,28 @@ const TaskListScreen: React.FC = () => {
               </Button>
               <Button
                 variant="ghost"
-                onClick={() => api.deleteTask(listId, task.id)}
+                onPress ={() => deleteTaskFromTaskList(task)}
                 aria-label={`Delete task "${task.title}"`}
               >
                 <Trash className="h-4 w-4" />
               </Button>
             </div>
           </TableCell>
+          <TableCell className="px-4 py-2">
+            {task.updated && (
+              <DateInput
+                isDisabled
+                defaultValue={parseDate(
+                  task.updated ? new Date(task.updated).toISOString().split("T")[0] : ""
+                )}
+                aria-label={`Last edited date for task "${task.title}"`}
+              />
+            )}
+          </TableCell>
         </TableRow>
       ));
     } else {
-      return null;
+      return [];
     }
   };
 
@@ -147,19 +176,15 @@ const TaskListScreen: React.FC = () => {
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col items-center justify-between mb-6">
         <div className="flex w-full items-center justify-between">
           <Button
             variant="ghost"
             aria-label="Go back to Task Lists"
-            onClick={() => navigate("/")}
+            onPress={() => navigate("/")}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-
-          <h1 className="text-2xl font-bold mx-4">
-            {taskList ? taskList.title : "Unknown Task List"}
-          </h1>
 
           <Button
             variant="ghost"
@@ -168,6 +193,15 @@ const TaskListScreen: React.FC = () => {
           >
             <Edit className="h-4 w-4" />
           </Button>
+        </div>
+
+        <div className="flex flex-col items-center border rounded-xl p-4 w-full mt-4 border-gray-400">
+          <h1 className="text-2xl font-bold mx-4">
+            {taskList ? taskList.title : "Unknown Task List"}
+          </h1>
+          <h3 className="text-sm text-gray-500 mt-2">
+              {taskList ? taskList.description : "No description available"}
+            </h3>
         </div>
       </div>
 
@@ -191,6 +225,7 @@ const TaskListScreen: React.FC = () => {
             <TableColumn>Priority</TableColumn>
             <TableColumn>Due Date</TableColumn>
             <TableColumn>Actions</TableColumn>
+            <TableColumn>Last Edited</TableColumn>
           </TableHeader>
           <TableBody>{tableRows()}</TableBody>
         </Table>

@@ -8,5 +8,6 @@ interface Task {
   dueDate: Date | undefined;
   priority: TaskPriority;
   status: TaskStatus | undefined;
+  updated: Date | undefined;
 }
 export default Task;
